@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+  db:
+    build: 
+      context: ../load-data
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=example
+      - MYSQL_DATABASE=ordersdb
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+    command: --local-infile=1 --secure-file-priv=/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pexample"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  hadoop:
+    build:
+      context: .
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - hadoop_data:/opt/hadoop/data
+    ports:
+      - "9870:9870"  # NameNode web interface
+      - "8088:8088"  # ResourceManager web interface
+      - "9864:9864"  # DataNode web interface
+    command: keep-alive
+
+volumes:
+  mysql_data:
+  hadoop_data:

@@ -9,23 +9,53 @@ USE ordersdb;
 -- Drop tables if they exist (in reverse order of dependency)
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS stagingOrders;
+DROP TABLE IF EXISTS delivery_person;
 DROP TABLE IF EXISTS restaurants;
 DROP TABLE IF EXISTS days;
 DROP TABLE IF EXISTS customers;
 
 CREATE TABLE customers (
-  customer_id INT PRIMARY KEY
+  customer_id INT PRIMARY KEY,
+  first_name VARCHAR(100),
+  last_name VARCHAR(100),
+  email VARCHAR(255),
+  phone VARCHAR(20),
+  address VARCHAR(255),
+  city VARCHAR(100),
+  registration_date DATE
 );
 
 CREATE TABLE restaurants (
   restaurant_id INT AUTO_INCREMENT PRIMARY KEY,
   restaurant_name VARCHAR(255),
-  cuisine_type VARCHAR(100)
+  cuisine_type VARCHAR(100),
+  address VARCHAR(255),
+  city VARCHAR(100),
+  phone VARCHAR(20),
+  website VARCHAR(255),
+  price_range VARCHAR(10),
+  rating_avg DECIMAL(3,2),
+  opening_hour TIME,
+  closing_hour TIME,
+  established_date DATE
 );
 
 CREATE TABLE days (
   day_id INT AUTO_INCREMENT PRIMARY KEY,
-  day_name VARCHAR(50)
+  day_name VARCHAR(50),
+  is_weekend BOOLEAN,
+  is_holiday BOOLEAN
+);
+
+CREATE TABLE delivery_person (
+  delivery_person_id INT AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(100),
+  last_name VARCHAR(100),
+  phone VARCHAR(20),
+  email VARCHAR(255),
+  vehicle_type ENUM('car', 'motorcycle', 'bicycle', 'scooter', 'on foot'),
+  hire_date DATE,
+  rating DECIMAL(3,2)
 );
 
 CREATE TABLE orders (
@@ -37,9 +67,12 @@ CREATE TABLE orders (
   rating INT,
   food_preparation_time INT,
   delivery_time INT,
+  delivery_person_id INT,
+  tip_amount DECIMAL(5,2),
   FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
   FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id),
-  FOREIGN KEY (day_id) REFERENCES days(day_id)
+  FOREIGN KEY (day_id) REFERENCES days(day_id),
+  FOREIGN KEY (delivery_person_id) REFERENCES delivery_person(delivery_person_id)
 );
 
 -- Create a staging table matching the CSV structure
