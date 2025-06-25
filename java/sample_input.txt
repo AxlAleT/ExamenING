@@ -1,0 +1,6 @@
+product1,region1,category1,100.5
+product1,region1,category2,200.3
+product2,region2,category1,150.0
+product1,region1,category1,50.2
+product2,region1,category3,75.8
+product3,region3,category2,125.4
