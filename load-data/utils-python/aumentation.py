@@ -4,187 +4,197 @@ import random
 import os
 import datetime
 from collections import defaultdict
+from faker import Faker
 
-# Read from file instead of hardcoded string
-def read_data_from_file(file_path):
-    rows = []
-    with open(file_path, 'r') as f:
+# Initialize faker
+fake = Faker()
+
+# Default paths
+DEFAULT_INPUT = 'input.csv'
+DEFAULT_OUTPUT = 'unnormalized.csv'
+
+# Read orders from CSV
+def read_orders(file_path):
+    with open(file_path, 'r', newline='') as f:
         reader = csv.DictReader(f)
-        for row in reader:
-            rows.append(row)
-    return rows, reader.fieldnames
+        return list(reader), reader.fieldnames
 
-# Sample input data as a string (replace with file reading in real scenario)
-data = """order_id,customer_id,restaurant_name,cuisine_type,cost_of_the_order,day_of_the_week,rating,food_preparation_time,delivery_time
-1477147,337525,Hangawi,Korean,30.75,Weekend,Not given,25,20
-1477685,358141,Blue Ribbon Sushi Izakaya,Japanese,12.08,Weekend,Not given,25,23
-1477070,66393,Cafe Habana,Mexican,12.23,Weekday,5,23,28"""
-
-# Function to generate artificial data with more options
-def generate_artificial_data(rows, num_to_generate=None, variation_factor=0.15):
+# Generate artificial order rows
+def generate_artificial_orders(rows, num_to_generate=None, variation_factor=0.15):
     if num_to_generate is None:
-        num_to_generate = len(rows)  # Default to doubling the dataset
-    
-    # Find max IDs for incrementing
-    max_order_id = max(int(row['order_id']) for row in rows)
-    max_customer_id = max(int(row['customer_id']) for row in rows)
-    
-    # Extract patterns from existing data
-    restaurant_cuisine = {row['restaurant_name']: row['cuisine_type'] for row in rows}
-    cuisine_costs = defaultdict(list)
-    for row in rows:
-        cuisine_costs[row['cuisine_type']].append(float(row['cost_of_the_order']))
-    
-    # Calculate cuisine cost ranges
-    cuisine_cost_ranges = {}
-    for cuisine, costs in cuisine_costs.items():
-        if costs:
-            avg_cost = sum(costs) / len(costs)
-            cuisine_cost_ranges[cuisine] = (avg_cost * (1-variation_factor), 
-                                           avg_cost * (1+variation_factor))
-    
-    # Day patterns for ratings
-    day_ratings = {
-        'Weekend': ['Not given', 'Not given', 4, 5],  # Mostly not rated
-        'Weekday': [5, 4, 5, 'Not given']             # More likely rated
+        num_to_generate = len(rows)
+    max_order_id = max(int(r['order_id']) for r in rows)
+    max_customer_id = max(int(r['customer_id']) for r in rows)
+
+    # Patterns by cuisine
+    restaurant_cuisine = {r['restaurant_name']: r['cuisine_type'] for r in rows}
+    costs = defaultdict(list)
+    prep_times = defaultdict(list)
+    delivery_times = defaultdict(list)
+    for r in rows:
+        costs[r['cuisine_type']].append(float(r['cost_of_the_order']))
+        prep_times[r['cuisine_type']].append(int(r['food_preparation_time']))
+        delivery_times[r['cuisine_type']].append(int(r['delivery_time']))
+
+    cuisine_cost_ranges = {
+        c: (sum(v)/len(v)*(1-variation_factor), sum(v)/len(v)*(1+variation_factor))
+        for c, v in costs.items()
     }
-    
-    # Prep and delivery time patterns by cuisine
-    cuisine_prep_times = defaultdict(list)
-    cuisine_delivery_times = defaultdict(list)
-    for row in rows:
-        cuisine_prep_times[row['cuisine_type']].append(int(row['food_preparation_time']))
-        cuisine_delivery_times[row['cuisine_type']].append(int(row['delivery_time']))
-    
-    # Generate new entries
-    new_rows = []
+    day_ratings = {
+        'Weekend': ['Not given', 'Not given', 4, 5],
+        'Weekday': [5, 4, 5, 'Not given']
+    }
+
+    new = []
     for _ in range(num_to_generate):
-        # Select a random existing row as template or fully random generation
-        if random.random() < 0.7:  # 70% based on existing, 30% more random
-            template_row = random.choice(rows).copy()
-        else:
-            # Create more random entry
-            restaurant_name, cuisine_type = random.choice(list(restaurant_cuisine.items()))
-            template_row = {
-                'restaurant_name': restaurant_name,
-                'cuisine_type': cuisine_type,
-                'day_of_the_week': random.choice(['Weekday', 'Weekend']),
-                # Other fields will be filled in below
-            }
-            
-        # Generate new row
-        new_row = template_row.copy()
-        
-        # Generate new IDs
+        template = random.choice(rows).copy()
+        record = template.copy()
+
         max_order_id += random.randint(1, 5)
         max_customer_id += random.randint(1, 5)
-        new_row['order_id'] = str(max_order_id)
-        new_row['customer_id'] = str(max_customer_id)
-        
-        # Randomly select restaurant and ensure cuisine type matches
-        if random.random() > 0.7:  # 30% chance to change restaurant
-            new_row['restaurant_name'] = random.choice(list(restaurant_cuisine.keys()))
-            new_row['cuisine_type'] = restaurant_cuisine[new_row['restaurant_name']]
-        
-        # Modify cost based on cuisine patterns
-        cuisine = new_row['cuisine_type']
+        record['order_id'] = str(max_order_id)
+        record['customer_id'] = str(max_customer_id)
+
+        # Random restaurant swap
+        if random.random() > 0.7:
+            rname, ctype = random.choice(list(restaurant_cuisine.items()))
+            record['restaurant_name'], record['cuisine_type'] = rname, ctype
+
+        # Cost variation
+        cuisine = record['cuisine_type']
         if cuisine in cuisine_cost_ranges:
-            min_cost, max_cost = cuisine_cost_ranges[cuisine]
-            new_row['cost_of_the_order'] = str(round(random.uniform(min_cost, max_cost), 2))
-        else:
-            # Fallback to simpler variation if cuisine is new
-            cost = float(template_row.get('cost_of_the_order', 15.0))
-            new_row['cost_of_the_order'] = str(round(cost * random.uniform(0.85, 1.15), 2))
-        
-        # Flip weekday/weekend with 40% probability
+            lo, hi = cuisine_cost_ranges[cuisine]
+            record['cost_of_the_order'] = str(round(random.uniform(lo, hi), 2))
+
+        # Day flip
         if random.random() < 0.4:
-            new_row['day_of_the_week'] = 'Weekday' if template_row.get('day_of_the_week') == 'Weekend' else 'Weekend'
-        
-        # Generate rating based on day pattern
-        new_row['rating'] = str(random.choice(day_ratings[new_row['day_of_the_week']]))
-        
-        # Vary times based on cuisine patterns when available
-        if cuisine in cuisine_prep_times and cuisine_prep_times[cuisine]:
-            avg_prep = sum(cuisine_prep_times[cuisine]) / len(cuisine_prep_times[cuisine])
-            new_row['food_preparation_time'] = str(max(1, int(avg_prep + random.randint(-3, 3))))
-        else:
-            # Fallback
-            new_row['food_preparation_time'] = str(max(15, int(template_row.get('food_preparation_time', 25)) + random.randint(-3, 3)))
-            
-        if cuisine in cuisine_delivery_times and cuisine_delivery_times[cuisine]:
-            avg_delivery = sum(cuisine_delivery_times[cuisine]) / len(cuisine_delivery_times[cuisine])
-            new_row['delivery_time'] = str(max(10, int(avg_delivery + random.randint(-4, 4))))
-        else:
-            # Fallback
-            new_row['delivery_time'] = str(max(10, int(template_row.get('delivery_time', 20)) + random.randint(-4, 4)))
-        
-        new_rows.append(new_row)
-    
-    return new_rows
+            record['day_of_the_week'] = (
+                'Weekday' if template['day_of_the_week'] == 'Weekend' else 'Weekend'
+            )
 
-# Main function to run the augmentation
-def augment_data(input_file=None, output_file=None, num_to_generate=None):
-    if input_file and os.path.exists(input_file):
-        rows, fieldnames = read_data_from_file(input_file)
-    else:
-        # Fallback to sample data
-        reader = csv.DictReader(io.StringIO(data))
-        rows = list(reader)
-        fieldnames = reader.fieldnames
-    
-    # Generate new data
-    new_rows = generate_artificial_data(rows, num_to_generate)
-    
-    # Combine original and new data
-    all_rows = rows + new_rows
-    
-    # Output results
-    if output_file:
-        with open(output_file, 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(all_rows)
-        print(f"Augmented data written to {output_file}")
-        return output_file
-    else:
-        output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        # Rating
+        record['rating'] = str(random.choice(day_ratings[record['day_of_the_week']]))
+
+        # Prep time
+        if cuisine in prep_times and prep_times[cuisine]:
+            avg_prep = sum(prep_times[cuisine]) / len(prep_times[cuisine])
+            record['food_preparation_time'] = str(max(1, int(avg_prep + random.randint(-3, 3))))
+
+        # Delivery time
+        if cuisine in delivery_times and delivery_times[cuisine]:
+            avg_del = sum(delivery_times[cuisine]) / len(delivery_times[cuisine])
+            record['delivery_time'] = str(max(10, int(avg_del + random.randint(-4, 4))))
+
+        new.append(record)
+    return new
+
+# Enrich and flatten function
+def enrich_and_flatten(rows):
+    # Customer enrichment
+    customer_ids = set(r['customer_id'] for r in rows)
+    customer_info = {}
+    for cid in customer_ids:
+        customer_info[cid] = {
+            'cust_first_name': fake.first_name(),
+            'cust_last_name': fake.last_name(),
+            'cust_email': fake.email(),
+            'cust_phone': fake.phone_number(),
+            'cust_address': fake.street_address(),
+            'cust_city': fake.city(),
+            'cust_registration_date': fake.date_between('-5y','today').isoformat()
+        }
+    # Restaurant enrichment
+    restaurant_names = set(r['restaurant_name'] for r in rows)
+    price_map = { '$':['$','$$'], '$$':['$$','$$$'], '$$$':['$$$','$$$$'], '$$$$':['$$$$'] }
+    restaurant_info = {}
+    for name in restaurant_names:
+        cuisine = next(r['cuisine_type'] for r in rows if r['restaurant_name']==name)
+        pr = random.choice(price_map.get(cuisine, ['$$']))
+        rating_avg = round(random.uniform(3.0,4.9), 2)
+        open_h = f"{random.randint(7,16)}:00"
+        close_h = f"{random.randint(20,23)}:00"
+        restaurant_info[name] = {
+            'rest_address': fake.street_address(),
+            'rest_city': fake.city(),
+            'rest_phone': fake.phone_number(),
+            'rest_website': f"www.{name.lower().replace(' ','')}.com",
+            'rest_price_range': pr,
+            'rest_rating_avg': rating_avg,
+            'rest_opening_hour': open_h,
+            'rest_closing_hour': close_h,
+            'rest_established_date': fake.date_between('-10y','-1y').isoformat()
+        }
+    # Day flags
+    days_info = {
+        'Weekday': {'is_weekend': False, 'is_holiday': False},
+        'Weekend': {'is_weekend': True, 'is_holiday': random.random()<0.1}
+    }
+    # Delivery persons
+    delivery_persons = [
+        {
+            'del_id': i,
+            'del_first_name': fake.first_name(),
+            'del_last_name': fake.last_name(),
+            'del_phone': fake.phone_number(),
+            'del_email': fake.email(),
+            'del_vehicle': random.choice(['car','motorcycle','bicycle','scooter','on foot']),
+            'del_hire_date': fake.date_between('-3y','today').isoformat(),
+            'del_rating': round(random.uniform(3.0,5.0),2)
+        } for i in range(1,51)
+    ]
+    # Flatten
+    flat = []
+    for r in rows:
+        dp = random.choice(delivery_persons)
+        cost = float(r['cost_of_the_order'])
+        rating_val = None if r['rating']=='Not given' else float(r['rating'])
+        if rating_val is None:
+            pct = random.uniform(0,0.1)
+        elif rating_val >= 4:
+            pct = random.uniform(0.15,0.25)
+        else:
+            pct = random.uniform(0.05,0.15)
+        tip = round(cost * pct, 2)
+        rec = {
+            **r,
+            **customer_info[r['customer_id']],
+            **restaurant_info[r['restaurant_name']],
+            **days_info[r['day_of_the_week']],
+            **{k: v for k, v in dp.items() if k != 'del_id'},
+            'delivery_person_id': dp['del_id'],
+            'tip_amount': tip
+        }
+        flat.append(rec)
+    return flat
+
+# Write CSV output
+def write_csv(rows, out_file):
+    if not rows:
+        return
+    with open(out_file, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
         writer.writeheader()
-        writer.writerows(all_rows)
-        return output.getvalue()
+        writer.writerows(rows)
+    print(f'Enriched CSV written to {out_file}')
 
-# Allow script to be run directly
-if __name__ == "__main__":
+# Main execution with argument parsing
+if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Augment food order data')
-    parser.add_argument('--input', help='Input CSV file path', required=True)
-    parser.add_argument('--output', help='Output CSV file path (if not specified, prints to console)')
-    parser.add_argument('--count', type=int, help='Number of new entries to generate (defaults to matching input size)')
-    
-    print("Data Augmentation Tool")
-    print("----------------------")
-    print("This script creates artificial data based on patterns in your input file.")
-    print("The output will be written to a new file (will not override your input).")
-    
+    parser = argparse.ArgumentParser(description='Augment and enrich orders CSV into a single unnormalized file')
+    parser.add_argument('--input', '-i', default=DEFAULT_INPUT, help='Path to input orders CSV')
+    parser.add_argument('--output', '-o', default=DEFAULT_OUTPUT, help='Path for output enriched CSV')
+    parser.add_argument('--count', '-c', type=int, default=None,
+                        help='Number of artificial entries to generate (defaults to same as input rows)')
+    parser.add_argument('--variation', '-v', type=float, default=0.15,
+                        help='Variation factor for cost ranges (default 0.15)')
     args = parser.parse_args()
-    
+
     if not os.path.exists(args.input):
         print(f"Error: Input file '{args.input}' not found")
         exit(1)
-    
-    print(f"Reading data from: {args.input}")
-    if args.output:
-        print(f"Output will be saved to: {args.output}")
-    else:
-        print("No output file specified. Results will be printed to console.")
-        
-    if args.count:
-        print(f"Generating {args.count} new entries")
-    else:
-        print("Generating entries matching the size of input file")
-    
-    result = augment_data(args.input, args.output, args.count)
-    if not args.output:
-        print(result)
-    else:
-        print(f"Successfully augmented data. Original entries preserved plus new ones added.")
+
+    orig_rows, _ = read_orders(args.input)
+    artificial = generate_artificial_orders(orig_rows, num_to_generate=args.count, variation_factor=args.variation)
+    combined = orig_rows + artificial
+    flat = enrich_and_flatten(combined)
+    write_csv(flat, args.output)
