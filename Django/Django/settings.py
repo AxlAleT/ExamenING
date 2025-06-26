@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_extensions',  # Add django-extensions
     'warehouse',  # Our warehouse app
+    'django_apscheduler', # For scheduling tasks
 ]
 
 MIDDLEWARE = [

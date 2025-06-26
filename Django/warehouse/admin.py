@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     DimCustomer, DimRestaurant, DimDate, DimLocation,
-    DimTimeslot, DimDeliveryPerson, FactOrders
+    DimTimeSlot, DimDeliveryPerson, FactOrders
 )
 
 @admin.register(DimCustomer)
@@ -32,8 +32,8 @@ class DimLocationAdmin(admin.ModelAdmin):
     list_filter = ('city', 'region')
 
 
-@admin.register(DimTimeslot)
-class DimTimeslotAdmin(admin.ModelAdmin):
+@admin.register(DimTimeSlot)
+class DimTimeSlotAdmin(admin.ModelAdmin):
     list_display = ('time_slot_id', 'slot_name', 'start_time', 'end_time')
     search_fields = ('slot_name',)
 

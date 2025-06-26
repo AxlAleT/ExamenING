@@ -1,0 +1,6 @@
+# This file will be used as the source for the data warehouse.
+# Please populate this CSV with data similar to the following header:
+# order_id,customer_id,restaurant_name,cuisine_type,cost_of_the_order,day_of_the_week,rating,food_preparation_time,delivery_time
+# Example:
+# 1,101,Italian Delight,Italian,25.50,Monday,5,20,30
+# 2,102,Sushi Heaven,Japanese,40.00,Wednesday,4,25,40

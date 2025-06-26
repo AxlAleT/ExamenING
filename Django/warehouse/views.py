@@ -3,7 +3,7 @@ from django.db.models import Count, Avg, Sum
 from django.views.generic import TemplateView, ListView
 from .models import (
     FactOrders, DimCustomer, DimRestaurant,
-    DimDeliveryPerson, DimDate, DimTimeslot, DimLocation
+    DimDeliveryPerson, DimDate, DimTimeSlot, DimLocation
 )
 
 class DashboardView(TemplateView):
