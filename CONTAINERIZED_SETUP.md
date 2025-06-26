@@ -7,25 +7,22 @@ This project contains a containerized Hadoop-based ETL pipeline that extracts da
 The system consists of two main containers:
 
 1. **MySQL Container**: Hosts the source database (`ordersdb`) and the target data warehouse database (`datawarehouse`)
-2. **Hadoop Container**: Runs the Hadoop cluster and the ETL jobs
+2. **Hadoop Container**: Uses the official Apache Hadoop Docker image to run the Hadoop cluster and ETL jobs
 
 ## Prerequisites
 
 - Docker
 - Docker Compose
-- Maven (for building the Java application)
 
 ## Directory Structure
 
 ```
 Examen/
 ├── java/
-│   ├── Dockerfile          # Hadoop container configuration
+│   ├── Dockerfile          # Hadoop container configuration (using official image)
 │   ├── docker-compose.yml  # Docker Compose file for the Hadoop container
 │   ├── entrypoint.sh       # Startup script for the Hadoop container
-│   ├── hadoop-config/      # Hadoop configuration files
 │   ├── src/                # Java source code
-│   ├── target/             # Compiled Java code
 │   └── ...
 ├── load-data/
 │   ├── Dockerfile          # MySQL container configuration
@@ -46,11 +43,12 @@ Examen/
 ```
 
 The script will:
-1. Build the Java application with Maven
-2. Build the Docker images for both containers
+1. Set up the required directories
+2. Build the Docker images for both containers using the official Apache Hadoop image
 3. Start the containers
-4. Run the Hadoop ETL job
-5. Export the results to the MySQL database
+4. Build the Java application inside the Hadoop container
+5. Run the Hadoop ETL job
+6. Export the results to the MySQL database
 
 ## Monitoring and Debugging
 
@@ -62,12 +60,12 @@ The script will:
 - **MySQL Database**:
   To connect to the MySQL database:
   ```bash
-  docker exec -it java_db_1 mysql -u root -pexample
+  docker exec -it java-db-1 mysql -u root -pexample
   ```
 
 - **Container Logs**:
   ```bash
-  docker-compose logs -f hadoop
+  docker compose logs -f hadoop
   ```
 
 ## Stopping the Containers
@@ -75,7 +73,7 @@ The script will:
 To stop the containers:
 ```bash
 cd java
-docker-compose down
+docker compose down
 ```
 
 ## Data Flow

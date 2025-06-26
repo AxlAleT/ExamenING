@@ -4,6 +4,7 @@ services:
   db:
     build: 
       context: ../load-data
+    container_name: java-db-1
     ports:
       - "3306:3306"
     volumes:
@@ -23,6 +24,7 @@ services:
   hadoop:
     build:
       context: .
+    container_name: java-hadoop-1
     depends_on:
       db:
         condition: service_healthy

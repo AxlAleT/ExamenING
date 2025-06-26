@@ -1,0 +1,26 @@
+FROM openjdk:8-jdk
+
+# Install MySQL client
+RUN apt-get update && \
+    apt-get install -y default-mysql-client && \
+    apt-get clean
+
+# Copy source code
+WORKDIR /app
+COPY src/ /app/src/
+COPY pom.xml /app/
+
+# Install MySQL connector
+RUN wget https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.28/mysql-connector-java-8.0.28.jar -O /app/mysql-connector-java-8.0.28.jar
+
+# Build the application
+RUN apt-get install -y maven && \
+    mvn clean package dependency:copy-dependencies && \
+    apt-get remove -y maven && \
+    apt-get autoremove -y
+
+# Entry point script
+COPY standalone-entrypoint.sh /app/
+RUN chmod +x /app/standalone-entrypoint.sh
+
+ENTRYPOINT ["/app/standalone-entrypoint.sh"]
