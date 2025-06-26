@@ -1,74 +1,65 @@
-FROM python:3.9-slim
+FROM apache/airflow:2.10.2-python3.11
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV AIRFLOW_HOME=/opt/airflow
+
+# Switch to root for system installations
+USER root
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     default-libmysqlclient-dev \
+    pkg-config \
+    gcc \
+    python3-dev \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create airflow user
-RUN useradd -ms /bin/bash -d ${AIRFLOW_HOME} airflow
-
-# Create working directory
+# Create app directory for ETL code
 WORKDIR /app
 
 # Copy requirements and install dependencies
-COPY requirements.txt .
+COPY --chown=airflow:root requirements.txt .
+
+# Switch to airflow user for pip installations
+USER airflow
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir poetry-core
+
+# Now install your main requirements.txt
+# Note: avoid installing airflow again as it's already in the base image
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Copy application code with proper ownership
+USER root
+COPY --chown=airflow:root . .
+
+# Copy DAGs to the Airflow DAGs folder
+RUN mkdir -p /opt/airflow/dags
+RUN cp -r dags/* /opt/airflow/dags/
+RUN chown -R airflow: /opt/airflow /app
+
+# Switch back to airflow user to install the package in editable mode
+USER airflow
+WORKDIR /app
 RUN pip install -e .
 
-# Create necessary directories
-RUN mkdir -p data/raw data/processed logs
-RUN chmod -R 777 data logs
-
-# Set permissions for airflow
-RUN mkdir -p ${AIRFLOW_HOME}/dags ${AIRFLOW_HOME}/logs
-RUN cp dags/* ${AIRFLOW_HOME}/dags/
-RUN chown -R airflow: ${AIRFLOW_HOME}
-
-# Switch to airflow user
+# Switch back to airflow user for running the container
 USER airflow
-WORKDIR ${AIRFLOW_HOME}
-
-# Initialize airflow database
-RUN airflow db init
-
-# Create admin user
-RUN airflow users create \
-    --username admin \
-    --firstname Admin \
-    --lastname User \
-    --role Admin \
-    --email admin@example.com \
-    --password admin
+WORKDIR /opt/airflow
 
 # Expose port for airflow webserver
 EXPOSE 8080
 
-# Create entrypoint script
+# Copy and set up the custom entrypoint script
 USER root
-RUN echo '#!/bin/bash\n\
-if [ "$1" = "webserver" ]; then\n\
-    exec airflow webserver\n\
-elif [ "$1" = "scheduler" ]; then\n\
-    exec airflow scheduler\n\
-elif [ "$1" = "etl" ]; then\n\
-    cd /app && python -m src.main\n\
-elif [ "$1" = "shell" ]; then\n\
-    exec /bin/bash\n\
-else\n\
-    exec "$@"\n\
-fi' > /entrypoint.sh && chmod +x /entrypoint.sh
+COPY --chown=airflow:root ./custom-entrypoint.sh /app/custom-entrypoint.sh
+RUN chmod +x /app/custom-entrypoint.sh
 
 USER airflow
-ENTRYPOINT ["/entrypoint.sh"]
+WORKDIR /opt/airflow
+ENTRYPOINT ["/app/custom-entrypoint.sh"]
 CMD ["webserver"]

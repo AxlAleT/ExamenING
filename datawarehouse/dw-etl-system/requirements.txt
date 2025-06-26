@@ -1,11 +1,12 @@
 pandas
 numpy
 sqlalchemy
-mysqlclient
 pymysql
-apache-airflow==2.7.1
+mysqlclient
+apache-airflow>2.10.0
 apache-airflow-providers-mysql
 pytest
 python-dotenv
 pyyaml
 tqdm
+pendulum<3.0.0
