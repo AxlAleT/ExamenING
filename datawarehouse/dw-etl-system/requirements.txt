@@ -1,6 +1,11 @@
 pandas
+numpy
 sqlalchemy
-psycopg2-binary
+mysqlclient
+pymysql
+apache-airflow==2.7.1
+apache-airflow-providers-mysql
 pytest
 python-dotenv
-logging
+pyyaml
+tqdm

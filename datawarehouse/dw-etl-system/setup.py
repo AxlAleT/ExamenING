@@ -3,20 +3,36 @@ from setuptools import setup, find_packages
 setup(
     name='dw-etl-system',
     version='0.1.0',
-    author='Your Name',
-    author_email='your.email@example.com',
-    description='A Data Warehouse ETL system for generating fact tables based on a SQL schema.',
+    author='axltorres',
+    author_email='axltorres@example.com',
+    description='An ETL system for food delivery order data warehouse using Apache Airflow',
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
     install_requires=[
         'pandas',
+        'numpy',
         'sqlalchemy',
-        'psycopg2-binary',  # or another database driver as needed
+        'mysqlclient',
+        'pymysql',
+        'apache-airflow==2.7.1',
+        'apache-airflow-providers-mysql',
+        'pytest',
         'python-dotenv',
+        'pyyaml',
+        'tqdm'
     ],
     entry_points={
         'console_scripts': [
-            'dw-etl=main:main',  # Adjust this if your main function is located elsewhere
+            'order-etl=main:main',
         ],
     },
+    python_requires='>=3.8',
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+    ],
 )
