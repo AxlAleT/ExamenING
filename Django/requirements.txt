@@ -1,5 +1,0 @@
-Django~=3.2  # Using Django 3.2 LTS as a stable choice, can be adjusted.
-django-apscheduler~=0.6.2
-django-extensions~=3.1 # Or any compatible version
-mysqlclient
-django_apscheduler
