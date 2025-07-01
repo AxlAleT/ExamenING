@@ -64,8 +64,8 @@ DATABASES = {
         'NAME': 'ordersdb',
         'USER': 'root',
         'PASSWORD': os.environ.get('DB_PASSWORD', 'example'),
-        'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
-        'PORT': os.environ.get('DB_PORT', '3307'),
+        'HOST': os.environ.get('DB_HOST', 'mysql_db'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
@@ -75,8 +75,8 @@ DATABASES = {
         'NAME': 'olapdb',
         'USER': 'root',
         'PASSWORD': os.environ.get('DB_PASSWORD', 'example'),
-        'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
-        'PORT': os.environ.get('DB_PORT', '3307'),
+        'HOST': os.environ.get('DB_HOST', 'mysql_db'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
@@ -130,7 +130,7 @@ CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = TIME_ZONE
+CELERY_TIMEZONE = 'UTC'
 
 # Cache Configuration
 CACHES = {

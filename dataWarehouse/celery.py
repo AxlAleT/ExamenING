@@ -6,7 +6,11 @@ import os
 from celery import Celery
 
 # Set the default Django settings module for the 'celery' program.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dataWarehouse.settings')
+# Use Docker settings if we're in a Docker environment
+if os.environ.get('DB_HOST'):  # This environment variable is set in Docker
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dataWarehouse.settings_docker')
+else:
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dataWarehouse.settings')
 
 app = Celery('dataWarehouse')
 
